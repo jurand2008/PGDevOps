@@ -77,3 +77,173 @@ data eu_occ_total;
 	
 
 run;
+
+/*wyrazenia warunkkowe*/
+
+data cars_categories;
+	set sashelp.cars;
+	length car_category $12;
+	if MSRP <= 30000 then do;
+		num_category=1;
+		car_category="basic";
+	end;
+	else if MSRP <= 60000 then do;
+		num_category=2;
+		car_category="premium";
+	end;
+	else do;
+		num_category=3;
+		car_category="luxury";
+	end;
+run;
+
+data basic premium luxury;
+	set sashelp.cars;
+	length car_category $12;
+	if MSRP <= 30000 then do;
+		num_category=1;
+		car_category="basic";
+		output basic;
+	end;
+	else if MSRP <= 60000 then do;
+		num_category=2;
+		car_category="premium";
+		output premium;
+	end;
+	else do;
+		num_category=3;
+		car_category="luxury";
+		output luxury;
+	end;
+run;
+
+/*zadanie 4.46*/
+
+***********************************************************;
+*  LESSON 4, PRACTICE 7                                   *;
+*    a) Submit the program and view the generated output. *;
+*    b) In the DATA step, use IF-THEN/ELSE statements to  *;
+*       create a new column, ParkType, based on the value *;
+*       of Type.                                          *;
+*       NM -> Monument                                    *;
+*       NP -> Park                                        *;
+*       NPRE, PRE, or PRESERVE -> Preserve                *;
+*       NS -> Seashore                                    *;
+*       RVR or RIVERWAYS -> River                         *;
+*    c) Modify the PROC FREQ step to generate a frequency *;
+*       report for ParkType.                              *;
+***********************************************************;
+
+data park_type;
+	set pg1.np_summary;
+	
+	if Type="NM" then do;
+		ParkType = "Monument";
+	end;
+	else if Type="NP" then do;
+		ParkType = "Park";
+	end;
+	else if Type="NPRE" or Type="PRE" or Type="PRESERVE" then do;
+		ParkType = "Preserve";
+	end;
+	else if Type="NS" then do;
+		ParkType = "Seashore";
+	end;
+	else if Type="RVR" or Type="RIVERWAYS" then do;
+		ParkType = "River";
+	end;
+
+
+run;
+
+proc freq data=park_type;
+	tables Type;
+run;
+
+data parks monuments;
+	set pg1.np_summary;
+	length ParkType $8;
+
+	Campers = sum(TentCampers, RVCampers, BackcountryCampers);
+	format Campers comma.;
+	keep Reg ParkName DdayVisits OtherLodging Campers ParkType;
+	if Type="NP" then do;
+		ParkType = "Park";
+		output parks;
+	end;
+	else if Type="NM" then do;
+		ParkType = "Monument";
+		output monuments;
+	end;
+
+run;
+
+
+data parks monuments;
+	set pg1.np_summary;
+	length ParkType $8;
+
+	Campers = sum(TentCampers, RVCampers, BackcountryCampers);
+	format Campers comma.;
+	keep Reg ParkName DdayVisits OtherLodging Campers ParkType;
+	select;  /* lub select(Type) i wtedy when("NP) itd*/
+		when(Type="NP") do; 
+			ParkType = "Park";
+			output parks;
+		end;
+		when(Type="NM") do;
+			ParkType = "Monument";
+			output monuments;
+		end;
+		otherwise;	
+	end;
+
+run;
+
+proc sql;
+	select Name, Age, Height
+	from pg1.class_birthday;
+quit;
+
+***********************************************************;
+*  Activity 7.02                                          *;
+*    1) Complete the SQL query to display Event and Cost  *;
+*       from PG1.STORM_DAMAGE. Format the values of Cost. *;
+*    2) Add a new column named Season that extracts the   *;
+*       year from Date.                                   *;
+*    3) Add a WHERE clause to return rows where Cost is   *;
+*       greater than 25 billion.                          *;
+*    4) Add an ORDER BY clause to arrange rows by         *;
+*       descending Cost. Which storm had the highest      *;
+*       cost?                                             *;
+***********************************************************;
+*  Syntax                                                 *;
+*    PROC SQL;                                            *;
+*        SELECT col-name, col-name FORMAT=fmt             *;
+*        FROM input-table                                 *;
+*        WHERE expression                                 *;
+*        ORDER BY col-name <DESC>;                        *;
+*    QUIT;                                                *;
+*                                                         *;
+*    New column in SELECT list:                           *;
+*    expression AS col-name                               *;
+***********************************************************;
+
+title "Most Costly Storms";
+proc sql number /*instr liczeniwa wierszy*/;
+	select Event, Cost format=dollar20., year(date) as Season  /*laczenie sasa i sql*/
+	from PG1.STORM_DAMAGE
+	where Cost > 25000000000
+	order by Cost desc;
+quit;
+title;
+
+title "Most Costly Storms";
+proc sql number /*instr liczeniwa wierszy*/;
+	create table storm_damage as
+	select Event, Cost format=dollar20., year(date) as Season  /*laczenie sasa i sql*/
+	from PG1.STORM_DAMAGE
+	where Cost > 25000000000
+	order by Cost desc;
+quit;
+title;

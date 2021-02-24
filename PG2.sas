@@ -251,6 +251,41 @@ run;
 
 data weather_japan_clean;
     set pg2.weather_japan;
-    NewLocation= ;
-    NewStation= ;
+    NewLocation= compbl(location);
+    NewStation= compress(Station, "- "); /*usuwa 2 znaki spacje i myslnik*/
+	City = strip(scan(NewLocation,2,",")); /*usuwa strip niepotrzebne znaki ktore wystapily*/
+	Prefecture = propcase(scan(NewLocation,2,","));
+run;
+
+***********************************************************;
+*  Activity 3.08                                          *;
+*  1) Notice that the assignment statement for            *;
+*     CategoryLoc uses the FIND function to search for    *;
+*     category within each value of the Summary column.   *;
+*     Run the program.                                    *;
+*  2) Examine the PROC PRINT report. Why is CategoryLoc   *;
+*     equal to 0 in row 1? Why is CategoryLoc equal to 0  *;
+*     in row 15?                                          *;
+*  3) Modify the FIND function to make the search case    *;
+*     insensitive. Uncomment the IF-THEN statement to     *;
+*     create a new column named Category. Run the program *;
+*     and examine the results.                            *;
+***********************************************************;
+*  Syntax Help                                            *;	
+*     FIND(string, substring <, 'modifiers'>)             *;
+*         Modifiers:                                      *;
+*             'I'=case insensitive search                 *;
+*             'T'=trim leading and training blanks from   *;
+*			     string and substring                     *;
+***********************************************************;
+
+data storm_damage2;
+	set pg2.storm_damage;
+	drop Date Cost;
+	CategoryLoc=find(Summary, 'category',"e"); /*find jest case sensitive*/
+	if CategoryLoc > 0 then Category=substr(Summary,CategoryLoc, 10);
+run;
+
+proc print data=storm_damage2;
+	var Event Summary Cat:;
 run;

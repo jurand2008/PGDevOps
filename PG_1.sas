@@ -247,3 +247,21 @@ proc sql number /*instr liczeniwa wierszy*/;
 	order by Cost desc;
 quit;
 title;
+
+
+/*laczenie danych w sql*/
+proc sql;
+	create table class_grade as
+	select u.name, u.sex, u.age, t.teacher, t.grade
+		from pg1.class_teachers t 
+			inner join pg1.class_update u
+		on t.name = u.name;
+quit;
+
+proc sql;
+	
+	select coalesce(u.name,t.name)as name, u.sex, u.age, t.teacher, t.grade
+		from pg1.class_teachers t 
+			full join pg1.class_update u
+		on t.name = u.name;
+quit;

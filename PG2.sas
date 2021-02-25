@@ -521,3 +521,280 @@ data clas_grades;
 		output;
 
 run;
+
+
+***********************************************************;
+*  LESSON 5, PRACTICE 3                                   *;
+*  a) Submit the two PROC SORT steps. Determine the name  *;
+*     of the common column in the sorted tables.          *;
+*  b) Modify the second PROC SORT step to use the RENAME= *;
+*     option after the PG2.NP_2016TRAFFIC table to rename *;
+*     Code to ParkCode. Modify the BY statement to sort   *;
+*     by the new column name.                             *;
+*  c) Write a DATA step to merge the sorted tables by the *;
+*     common column to create a new table,                *;
+*     WORK.TRAFFICSTATS. Drop the Name_Code column from   *;
+*     the output table.                                   *;
+***********************************************************;
+
+proc sort data=pg2.np_codelookup out=work.codesort;
+	by ParkCode;
+run;
+
+proc sort data=pg2.np_2016traffic out=work.traf2016Sort (rename=(ParkCode=Code));
+	by ParkCode month;
+run;
+
+data merge_tables;
+	merge pg2.np_codelookup pg2.np_2016traffic;
+	drop Name_Code,Code;
+run;
+
+/*Przetwarzanie w petlach*/
+
+data petlaDo;
+	do i = 1 to 10 /*by 2**/;
+		los=rand("integer", 1, 100);
+		output;
+	end;
+run;
+
+data doWhile;
+	i = 0;
+	do while(i<=10):
+			los = rand("integer", 1, 100);
+			i = i + 1;
+			output;
+	end;
+run;
+
+data doUntil;
+	i = 0;
+	do until(i<=10): /*warunek zostanie spelniony jesli jest falszem, warunki zawsze sie spelniaja po raz 1 szy. 1 iteracja przechodzdi niezaleznie od warunku*/
+			los = rand("integer", 1, 100);
+			i = i + 1;
+			output;
+	end;
+run;
+
+data doList;
+	do miesiac = "Styczen", "Luty", "Marzec"; /*lista numeryczna lub  stringowa*/
+		los = rand("integer", 1, 100);
+		output;
+	end;
+run;
+
+
+data doList;
+set sashelp.class; /*19 wierszy* * 3 = 57 3 kkrotnie wykonanie petli dla zasobóws/
+	do miesiac = "Styczen", "Luty", "Marzec"; /*lista numeryczna lub  stringowa*/
+		los = rand("integer", 1, 100);
+		output;
+	end;
+run;
+
+
+***********************************************************;
+*  LESSON 6, PRACTICE 1                                   *;
+*  a) Add an iterative DO loop around the sum statement   *;
+*     for Invest.                                         *;
+*     1) Add a DO statement that creates the column Year  *;
+*        with values ranging from 1 to 6.                 *;
+*     2) Add an OUTPUT statement to show the value of the *;
+*        retirement account for each year.                *;
+*     3) Add an END statement.                            *;
+*  b) Run the program and review the results.             *;
+*  c) Add an inner iterative DO loop between the sum      *;
+*     statement and the OUTPUT statement to include the   *;
+*     accrued quarterly compounded interest based on an   *;
+*     annual interest rate of 7.5%.                       *;
+*     1) Add a DO statement that creates the column       *;
+*        Quarter with values ranging from 1 to 4.         *;
+*     2) Add a sum statement to add the accrued interest  *;
+*        to the Invest value.                             *;
+*            Invest+(Invest*(.075/4));                    *;
+*     3) Add an END statement.                            *;
+*  d) Run the program and review the results.             *;
+*  e) Drop the Quarter column. Run the program and review *;
+*     the results.                                        *;
+***********************************************************;
+
+data retirement;
+	
+	do Year = 1 to 6;
+		Invest+10000;
+		do Quarter = 1 to 4;
+			 Invest = Invest+(Invest*(.075/4));
+		end;
+		output;
+		
+	end;drop Quarter
+
+run;
+
+title1 'Retirement Account Balance per Year';
+proc print data=retirement noobs;
+    format Invest dollar12.2;
+run;
+title;
+
+
+***********************************************************;
+*  LESSON 6, PRACTICE 2                                   *;
+*  a) Run the program and review the results. Notice that *;
+*     the initial program is showing the forecasted value *;
+*     for the next year. The next year is based on adding *;
+*     one year to the year value of today's date.         *;
+*     Depending on the current date, your NextYear value  *;
+*     might be bigger than the NextYear value in the      *;
+*     following results.                                  *;
+*  b) Add an iterative DO loop around the conditional     *;
+*     IF-THEN statements.                                 *;
+*     1) The DO loop needs to iterate five times.         *;
+*     2) In the DO statement, a new column named Year     *;
+*        needs to be created that starts at the value of  *;
+*        NextYear and stops at the value of NextYear plus *;
+*        4.                                               *;
+*     3) A row needs to be created for each year.         *;
+*  c) Modify the KEEP statement to keep the column Year   *;
+*     instead of NextYear.                                *;
+*  d) Run the program and review the results.             *;
+*  e) (Optional) Modify the OUTPUT statement to be a      *;
+*     conditional statement that outputs only on the      *;
+*     fifth iteration. Run the program and review the     *;
+*     results.                                            *;
+***********************************************************;
+
+data ForecastDayVisits;  
+    set pg2.np_summary;
+    where Reg='PW' and Type in ('NM','NP');
+    ForecastDV=DayVisits;
+    NextYear=year(today())+1;
+	do i = 1 to 5;
+		Year = NextYear + i;
+   	 	if Type='NM' then ForecastDV=ForecastDV*1.05;
+    	if Type='NP' then ForecastDV=ForecastDV*1.08;
+		output;
+	end;
+    format ForecastDV comma12.;
+    label ForecastDV='Forecasted Recreational Day Visitors';
+    keep ParkName DayVisits ForecastDV Year;
+run;
+
+proc sort data=ForecastDayVisits;
+    by ParkName;
+run;
+
+title 'Forecast of Recreational Day Visitors for Pacific West';
+proc print data=ForecastDayVisits label;
+run;
+title;
+
+
+***********************************************************;
+*  LESSON 6, PRACTICE 3                                   *;
+*  b) Add a DO loop to the DATA step to produce the       *;
+*     following results. The MPG value is increasing      *;
+*     by three percent per year.                          *;
+*  c) Modify the DO statement to produce the following    *;
+*     results. The DO statement will now be based on a    *;
+*     list of values instead of a value that is           *; 
+*     incremented.                                        *;
+***********************************************************;
+
+data IncMPG;
+    set sashelp.cars;
+	do year = 1 to 5;
+    	MPG=mean(MPG_City, MPG_Highway) * 1.03;
+		output;
+	end;
+run;
+
+title 'Projected Fuel Efficiency with 3% Annual Increase';
+proc print data=IncMPG;
+    var Make Model Year MPG;
+	format MPG 4.1;
+run;
+title;
+
+
+**************************************************;
+*  LESSON 6, PRACTICE 5                          *;
+**************************************************;
+
+data IncrExports;
+    set pg2.eu_sports;
+	
+    where Year=2015 and Country='Belgium' 
+          and Sport_Product in ('GOLF','RACKET');
+		do while(year < 2025 and Amt_Export <= Amt_Import);
+			if(Amt_Export <= Amt_Import) then do;
+				Year = Year + 1;
+			 
+			end;
+		end;
+	
+   
+
+    format Amt_Import Amt_Export comma12.;
+run; 
+
+title 'Belgium Golf and Racket Products - 7% Increase in Exports'; 
+proc print data=IncrExports;
+    var Sport_Product Year Amt_Import Amt_Export;
+run;
+title;
+
+/*Transpozycja kolumn*/
+proc transpose data=sashelp.class out=classT;
+	id name; 
+	var Height Weight;
+	
+run;
+
+proc sort data=sashelp.class out=classS;
+
+
+	by age;
+run;
+
+proc transpose data=classS out=classT;
+	id name;
+	var Height Weight;
+	by age;
+run;
+/*laczenie kolumn z tabel zmiana kolumn*/
+proc transpose data=pg2.storm_top4_narrow prefix=Wind out=storm_top4_wide(drop=_name_); 
+	id WindRank;
+	var WindMPH;
+	by season basin name;
+	
+run;
+
+
+proc transpose data=pg2.storm_top4_wide out=storm_top4_narrow 
+		(rename=(Col1= WindMPH)) name=WinRank;
+	by season basin name;
+	var Wind1-Wind4;
+run;
+
+
+**************************************************;
+*  LESSON 7, PRACTICE 4                          *;
+**************************************************;
+
+proc print data=pg2.np_2017camping(obs=5);
+run;
+
+proc transpose data=pg2.np_2017camping out=work.camping2017_t name=Location (rename=(COL1=Count));
+	by ParkName;
+	var Tent RV;
+
+run;
+
+proc transpose data=pg2.np_2016camping out=work.camping2016_t;
+	by ParkName;
+	var Tent RV;
+	id CampType;
+
+run;

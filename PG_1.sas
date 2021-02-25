@@ -22,7 +22,7 @@ run;
 
 
 data class_bd;
-	set PG1.class_birthdate;
+	set PG1.class_birth0;
 	format Birthdate ddmmyyd10.;
 	where birthdate >=  "01sep2005"d;
 	drop age;

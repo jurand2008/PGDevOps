@@ -289,3 +289,235 @@ run;
 proc print data=storm_damage2;
 	var Event Summary Cat:;
 run;
+
+
+data test;
+	a = "ala ";
+	call missing(a); /*modyfikuje argum na braki danych*/
+	l1 = length(a); /*usuwa spacje na koncu*/
+	l2 = lengthc(a); /*zwraca calkowita dlugosc razem ze spacjami*/
+	l3 = lengthn(a); 
+	
+run;
+
+data test;
+	length imie imie2 nazwisko $20;
+	imie = "Kasia";
+	imie2 = "Barbara";
+	nazwisko = "Kowalska";
+	fullname = cat(imie, imie2, nazwisko);
+	fullname2 = imie !! imie2 || nazwisko; /*inne laczenie tekstu*/
+	fullname3 = catx(" ",imie, imie2, nazwisko);
+run;
+
+***********************************************************;
+*  LESSON 3, PRACTICE 5                                   *;
+*  a) Notice that the DATA step creates a table named     *;
+*     PARKS and reads only those rows where ParkName ends *;
+*     with NP.                                            *;
+*  b) Modify the DATA step to create or modify the        *;
+*     following columns:                                  *;
+*     1) Use the SUBSTR function to create a new column   *;
+*        named Park that reads each ParkName value and    *;
+*        excludes the NP code at the end of the string.   *;
+*        Note: Use the FIND function to identify the      *;
+*        position number of the NP string. That value can *;
+*        be used as the third argument of the SUBSTR      *;
+*        function to specify how many characters to read. *;
+*     2) Convert the Location column to proper case. Use  *;
+*        the COMPBL function to remove any extra blanks   *;
+*        between words.                                   *;
+*     3) Use the TRANWRD function to create a new column  *;
+*        named Gate that reads Location and converts the  *;
+*        string Traffic Count At to a blank.              *;
+*     4) Create a new column names GateCode that          *;
+*        concatenates ParkCode and Gate together with a   *;
+*        single hyphen between the strings.               *;
+***********************************************************;
+
+data parks;
+	set pg2.np_monthlytraffic;
+	where ParkName like '%NP';
+	Park = substr(ParkName,1,find(ParkName,"NP") - 1);
+	Location = compbl(propcase(Location));
+	Gate = tranwrd(Location,Count," ");
+	GateCode = catx("-",ParkCode, Gate);
+
+run;
+
+proc print data=parks;
+	var Park GateCode Month Count;
+run;
+***********************************************************;
+*  LESSON 3, PRACTICE 6                                   *;
+*  a) Run the program. Notice that the Column1 column     *;
+*     contains raw data with values separated by various  *;
+*     symbols. The SCAN function is used to extract the   *;
+*     ParkCode and ParkName values.                       *;
+*  b) Examine the PROC CONTENTS report. Notice that       *;
+*     ParkCode and ParkName have a length of 200, which   *;
+*     is the same as Column1.                             *;
+*     Note: When the SCAN function creates a new column,  *;
+*     the new column will have the same length as the     *;
+*     column listed as the first argument.                *;
+*  c) The ParkCode column should include only the first   *;
+*     four characters in the string. Add a LENGTH         *;
+*     statement to define the length of ParkCode as 4.    *;
+*  d) The length for the ParkName column can be optimized *;
+*     by determining the longest string and setting an    *;
+*     appropriate length. Modify the DATA step to create  *;
+*     a new column named NameLength that uses the LENGTH  *;
+*     function to return the position of the last         *;
+*     non-blank character for each value of ParkName.     *;
+*  e) Use a RETAIN statement to create a new column named *;
+*     MaxLength that has an initial value of zero.        *;
+*  f) Use an assignment statement and the MAX function to *;
+*     set the value of MaxLength to either the current    *;
+*     value of NameLength or MaxLength, whichever is      *;
+*     larger.                                             *;
+*  g) Use the END= option in the SET statement to create  *;
+*     a temporary variable in the PDV named LastRow.      *;
+*     LastRow will be zero for all rows until the last    *;
+*     row of the table, when it will be 1. Add an IF-THEN *;
+*     statement to write the value of MaxLength to the    *;
+*     log if the value of LastRow is 1.                   *;
+***********************************************************;
+
+data parklookup;
+	set pg2.np_unstructured_codes end=Lastrow;  /*end=LastRow przyjmuje 0 do momentu keidy osiagnie osatni wiersz wtedy przyjmuje 1*/
+
+	length ParkCode $4;
+	ParkCode=scan(Column1, 2, '{}:,"()-'); /*akceptowany przyjmowany separator*/
+	ParkName=scan(Column1, 4, '{}:,"()');
+	NameLength = LENGTH(ParkName);
+	retain MaxLength 0;
+	MaxLength = max(MaxLength, NameLength); /*83 wyszlo wiec mozna ustawic ParkName 83*/
+	if Lastrow = 1 then
+		putlog "MaxLength = " MaxLength ;
+run;
+
+proc print data=parklookup(obs=10);
+run;
+
+proc contents data=parklookup;
+run;
+
+
+data stock2;
+	set pg2.stocks2 (rename = (date=date_old high=high_old volume=volume_old));
+	Date = input(date_old, date9.);
+	High = input(high_old, best12.); /*best ma wartosc domyslna 12 lub po prostu 12.*/
+	volume = input(volume_old, comma12.);
+	format Date ddmmyy10. Volume nlnum12.;
+	drop date_old high_old volume_old;
+run;
+
+
+data stocks3;
+	set stocks2;
+
+	value_zl = put(Volume, nlmny15.2) /*m od money w zlotówkach*/
+run;
+
+
+****************************************************************;
+*  Concatenating Tables                                        *;
+****************************************************************;
+*  Syntax and Example                                          *;
+*                                                              *;
+*    DATA output-table;                          	           *;
+*        SET input-table1(rename=(current-colname=new-colname))*;
+*            input-table2 ...;                                 *;
+*    RUN;                                                      *;
+****************************************************************;
+
+*Example with all matching columns;
+data class_current;
+	set sashelp.class pg2.class_new;
+run;
+
+*Example with columns having different names;
+data class_current;
+	set sashelp.class pg2.class_new2(rename=(Student=Name));
+run;
+
+***********************************************************;
+*  Demo                                                   *;
+*  1) Modify the SET statement to concatenate             *;
+*     PG2.STORM_SUMMARY and PG2.STORM_2017. Highlight the *;
+*     DATA and PROC SORT steps and run the selected code. *;
+*  2) Notice that for the 2017 storms Year is populated   *;
+*     with 2017, Location has values, and Season is       *;
+*     missing. Rows from the storm_summary table          *;
+*     (starting with row 55) have Season populated and    *;
+*     Year and Location are missing.                      *;
+*  3) After PG2.STORM_2017, use the RENAME= data set      *;
+*     option to rename Year as Season. Use the DROP= data *;
+*     set option to drop Location. Highlight the demo     *;
+*     program and run the selected code.                  *;
+***********************************************************;
+
+data storm_complete;
+	*Complete the SET statement;
+	set   ; 
+	Basin=upcase(Basin);
+run;
+
+proc sort data=storm_complete;
+	by descending StartDate;
+run;
+
+/*
+1. Skopiuje dadne z SASHELP.class do work.class
+2. DDolacze dane z pg2.classs_new do work.class
+*/
+
+proc copy in=sashelp out=work;
+	select class; /*opcjonalnie zamiast select mozna uzyc exclude czyli skopiju poza wymienionymim*/
+run;
+
+data class;
+	length name $9;
+	set sashelp.class;
+run;
+
+proc append base=class data=pg2.class_new;		/*w proc mozna zlaczyc tylko 2, w set mozna wiele*/
+run;
+
+proc append base=class data=pg2.class_new2(rename=(student=name); /*poprawianie bledów*/		
+run;	
+
+data np_join_class;
+	set pg2.np_2014 pg2.np_2015 pg2.np_2016;
+/*	by Month;*/
+	if ParkType = "National Park" then
+		output;
+	
+run;
+
+proc sort data=np_join_class out= np_join_sort;
+	by ParkType, ParkCode, Year;
+run;
+
+proc copy in=pg2 out=work;
+	select np_2014;
+run;
+
+proc append base=np_2014(rename=(park=Park_code type=park_type)) data=pg2.np_2015;
+run;
+
+data klasa ;
+	if 0 then do;
+		set sashelp.class;
+		output;
+	end;
+run;
+
+
+data clas_grades;
+	merge sashelp.class(in=c) pg2.class_teachers(in=t);
+	by name; /*odwolanie do klucza*/
+	if c = 1 and t = 1;
+		output;
+
+run;

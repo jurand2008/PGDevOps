@@ -798,3 +798,48 @@ proc transpose data=pg2.np_2016camping out=work.camping2016_t;
 	id CampType;
 
 run;
+
+
+
+data pracowniy;
+	infile "&pathPD3/pracownicy.txt";
+	input id :1 nazwisko; $ :20. imie $ :10. kod $ :2. dataUr :ddmmyy8.;
+	input id2 :1 x :4. dataZ :ddmmyy8. plec $ :1.;
+
+	nazwisko=propcase(naziwsk);
+	imie=propcase(imie);
+
+	format dataUr dataZ ddmmyy10.;
+	drop id2 x;
+run;
+
+
+
+
+data script;
+	infile "/opt/sas/Workshop/scripts/lesson4_practice3.sh";
+	input @'-' a :$100.;  /*przesuniecia wskaznika w buforze, przesuniecie do pozycji np zajmowanej przez hash*/
+	x=_infile_;
+run;
+
+
+data script;
+	infile "/opt/sas/Workshop/scripts/lesson4_practice3.sh";
+	input @'#' /*przesuniecie do pozycji np zajmowanej przez hash*/
+	x=_infile_;
+	backup=find(x,"back");
+run;
+
+/*wyszukanie warningow z logu data, czas, tresc komunikatu*/
+
+data find_warnings;
+	infile "/opt/sas/Workshop/danePGDevOps/PD3/SASApp_STPServer_2020-01-28_sasapp_18318.log";
+	input @'WARN' ;
+	x=_infile;
+	dadte=input(scan(x,1,"T"), yymmdd10.); 
+	time=input(scan(x,2,),"T,"),time8.);
+	msg=strip(scan(x,4,"-")); /*slowo za 4 myslnikiem*/  /*zamiast scan lepiej uzyc (substr(x,find((x," - ")+3));*/
+	format date ddmmyy10. time time.;
+	drop x;
+	
+run;
